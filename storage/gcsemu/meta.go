@@ -20,12 +20,17 @@ func BucketMeta(baseUrl HttpBaseUrl, bucket string) *storage.Bucket {
 
 // InitScrubbedMeta "bakes" metadata with intrinsic values and removes fields that are intrinsic / computed.
 func InitScrubbedMeta(meta *storage.Object, filename string) {
-	parts := strings.Split(filename, ".")
-	ext := parts[len(parts)-1]
+	if strings.HasSuffix(filename, "/") {
+		meta.ContentType = "application/directory"
+	} else {
+		parts := strings.Split(filename, ".")
+		ext := parts[len(parts)-1]
 
-	if meta.ContentType == "" {
-		meta.ContentType = mime.TypeByExtension(ext)
+		if meta.ContentType == "" {
+			meta.ContentType = mime.TypeByExtension(ext)
+		}
 	}
+
 	meta.Name = filename
 	ScrubMeta(meta)
 }

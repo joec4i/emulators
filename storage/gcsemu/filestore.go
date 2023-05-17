@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,7 +64,7 @@ func (fs *filestore) Get(baseUrl HttpBaseUrl, bucket string, filename string) (*
 	}
 
 	f := fs.filename(bucket, filename)
-	contents, err := ioutil.ReadFile(f)
+	contents, err := os.ReadFile(f)
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading  %s: %w", f, err)
 	}
@@ -87,12 +86,19 @@ func (fs *filestore) GetMeta(baseUrl HttpBaseUrl, bucket string, filename string
 
 func (fs *filestore) Add(bucket string, filename string, contents []byte, meta *storage.Object) error {
 	f := fs.filename(bucket, filename)
-	if err := os.MkdirAll(filepath.Dir(f), 0777); err != nil {
-		return fmt.Errorf("could not create dirs for:  %s: %w", f, err)
-	}
 
-	if err := ioutil.WriteFile(f, contents, 0666); err != nil {
-		return fmt.Errorf("could not write:  %s: %w", f, err)
+	if strings.HasSuffix(filename, "/") {
+		if err := os.MkdirAll(f, 0777); err != nil {
+			return fmt.Errorf("could not create dirs for:  %s: %w", f, err)
+		}
+	} else {
+		if err := os.MkdirAll(filepath.Dir(f), 0777); err != nil {
+			return fmt.Errorf("could not create dirs for:  %s: %w", f, err)
+		}
+
+		if err := os.WriteFile(f, contents, 0666); err != nil {
+			return fmt.Errorf("could not write:  %s: %w", f, err)
+		}
 	}
 
 	// Force a new modification time, since this is what Generation is based on.
@@ -106,7 +112,7 @@ func (fs *filestore) Add(bucket string, filename string, contents []byte, meta *
 	}
 
 	fMeta := metaFilename(f)
-	if err := ioutil.WriteFile(fMeta, mustJson(meta), 0666); err != nil {
+	if err := os.WriteFile(fMeta, mustJson(meta), 0666); err != nil {
 		return fmt.Errorf("could not write metadata file: %s: %w", fMeta, err)
 	}
 
@@ -118,7 +124,7 @@ func (fs *filestore) UpdateMeta(bucket string, filename string, meta *storage.Ob
 	meta.Metageneration = metagen
 
 	fMeta := metaFilename(fs.filename(bucket, filename))
-	if err := ioutil.WriteFile(fMeta, mustJson(meta), 0666); err != nil {
+	if err := os.WriteFile(fMeta, mustJson(meta), 0666); err != nil {
 		return fmt.Errorf("could not write metadata file: %s: %w", fMeta, err)
 	}
 
@@ -138,7 +144,7 @@ func (fs *filestore) Copy(srcBucket string, srcFile string, dstBucket string, ds
 
 	// Copy with metadata
 	f1 := fs.filename(srcBucket, srcFile)
-	contents, err := ioutil.ReadFile(f1)
+	contents, err := os.ReadFile(f1)
 	if err != nil {
 		return false, err
 	}
@@ -180,7 +186,7 @@ func (fs *filestore) Delete(bucket string, filename string) error {
 
 	// Try to delete empty directories
 	for fp := filepath.Dir(f); len(fp) > len(fs.filename(bucket, "")); fp = filepath.Dir(fp) {
-		files, err := ioutil.ReadDir(fp)
+		files, err := os.ReadDir(fp)
 		if err != nil || len(files) > 0 {
 			// Quit trying to delete the directory
 			break
@@ -201,7 +207,7 @@ func (fs *filestore) ReadMeta(baseUrl HttpBaseUrl, bucket string, filename strin
 	f := fs.filename(bucket, filename)
 	obj := &storage.Object{}
 	fMeta := metaFilename(f)
-	buf, err := ioutil.ReadFile(fMeta)
+	buf, err := os.ReadFile(fMeta)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("could not read metadata file %s: %w", fMeta, err)

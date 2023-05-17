@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/fullstorydev/emulators/storage/gcsemu"
+	"github.com/joec4i/emulators/storage/gcsemu"
 )
 
 var (

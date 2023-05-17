@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package gcsutil;
 
-option go_package = "github.com/fullstorydev/emulators/storage/gcsutil";
+option go_package = "github.com/joec4i/emulators/storage/gcsutil";
 
 message GcsPageToken{
   // The full name of the last result file, when returned from the server.
